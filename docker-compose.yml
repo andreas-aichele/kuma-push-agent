@@ -5,10 +5,13 @@ services:
     env_file: .env
     volumes:
       - ./config.yml:/config/config.yml:ro
-      - ./secrets/ssh_key:/run/secrets/ssh_key:ro
+      # known_hosts is required: the agent uses strict host key verification.
+      # Run: ssh-keyscan <your-host> >> secrets/known_hosts
+      - ./secrets/known_hosts:/root/.ssh/known_hosts:ro
     secrets:
       - ssh_key
 
 secrets:
   ssh_key:
+    # Docker Compose mounts this file read-only at /run/secrets/ssh_key inside the container.
     file: ./secrets/ssh_key

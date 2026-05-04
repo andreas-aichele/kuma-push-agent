@@ -58,44 +58,100 @@ You can monitor a MariaDB instance on a remote server without:
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- Docker ≥ 24 and Docker Compose v2 (`docker compose` — note: no hyphen)
 - An Uptime Kuma instance with at least one **Push** monitor configured
 - SSH access to the server hosting MariaDB
 
-### 1. Generate a dedicated SSH key
+### 1. Clone and create the secrets directory
 
 ```bash
+git clone https://github.com/andreas-aichele/kuma-push-agent.git
+cd kuma-push-agent
 mkdir -p secrets
+```
+
+### 2. Generate a dedicated SSH key
+
+```bash
 ssh-keygen -t ed25519 -f secrets/ssh_key -N "" -C "kuma-push-agent"
 # Install the public key on the target server:
 ssh-copy-id -i secrets/ssh_key.pub monitor@example.com
 ```
 
-### 2. Create the Push monitor in Uptime Kuma
+### 3. Add the target host to known_hosts
+
+The agent uses strict host key verification and will refuse to connect to any host
+not listed in `known_hosts`. Run this for **each** SSH host you will monitor:
+
+```bash
+ssh-keyscan -H example.com >> secrets/known_hosts
+```
+
+### 4. Create the Push monitor in Uptime Kuma
 
 1. **Add Monitor → Push**
-2. Set the **Heartbeat Interval** to match `interval_seconds` in your config
+2. Set the **Heartbeat Interval** to match `interval_seconds` in your config (e.g., `60`)
 3. Copy the generated push URL — you will paste it into `config.yml`
 
-### 3. Configure the agent
+### 5. Configure the agent
 
 ```bash
 cp config.example.yml config.yml
 cp .env.example .env
 ```
 
-Edit `config.yml` and fill in your SSH host, MariaDB details, and Uptime Kuma push URL.  
+Edit `config.yml` — fill in your SSH host, Uptime Kuma push URL, and MariaDB details:
+
+```yaml
+checks:
+  - name: web_prod_db
+    type: mariadb_via_ssh
+    interval_seconds: 60
+    timeout_seconds: 10
+    uptime_kuma_push_url: "https://kuma.example.com/api/push/YOUR_TOKEN"
+    ssh:
+      host: "example.com"
+      username: "monitor"
+      private_key_path: "/run/secrets/ssh_key"
+    mariadb:
+      username: "monitor"
+      password_env: "WEB_DB_PASSWORD"
+      database: "web"
+```
+
 Set the MariaDB password in `.env`:
 
 ```
 WEB_DB_PASSWORD=your-monitor-password
 ```
 
-### 4. Start the agent
+### 6. Start the agent
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 docker compose logs -f
+```
+
+Expected log output:
+
+```
+2024-01-15T10:30:00Z INFO  kuma_push_agent.main       kuma-push-agent v0.1.0 starting with 1 check(s)
+2024-01-15T10:30:00Z INFO  kuma_push_agent.scheduler  Scheduled check 'web_prod_db' every 60s
+2024-01-15T10:30:00Z INFO  kuma_push_agent.scheduler  Scheduler started with 1 job(s)
+2024-01-15T10:30:01Z INFO  kuma_push_agent.scheduler  Check 'web_prod_db': ok=True msg=OK ping=312ms
+2024-01-15T10:30:01Z INFO  kuma_push_agent.uptime_kuma Pushing to Uptime Kuma: https://kuma.example.com/api/push/*** status=up msg=OK ping=312ms
+```
+
+### Directory layout after setup
+
+```
+kuma-push-agent/
+├── config.yml            ← your active configuration
+├── .env                  ← MariaDB passwords
+└── secrets/
+    ├── ssh_key           ← SSH private key (never commit this)
+    ├── ssh_key.pub       ← SSH public key (install on target server)
+    └── known_hosts       ← target host fingerprints (ssh-keyscan output)
 ```
 
 ## Configuration Reference
@@ -175,23 +231,20 @@ FLUSH PRIVILEGES;
 ### SSH host key verification
 
 The agent always uses `RejectPolicy` — it will never silently accept an unknown host key.
-Before starting the agent, add each target host to `known_hosts`:
+Add each target host's fingerprint to `secrets/known_hosts` before starting the agent
+(see [Quick Start step 3](#3-add-the-target-host-to-known_hosts)):
 
 ```bash
-ssh-keyscan example.com >> secrets/known_hosts
+ssh-keyscan -H example.com >> secrets/known_hosts
 ```
 
-Then mount it into the container:
-
-```yaml
-volumes:
-  - ./secrets/known_hosts:/root/.ssh/known_hosts:ro
-```
+The `docker-compose.yml` already mounts this file at `/root/.ssh/known_hosts:ro` inside
+the container.
 
 ### Docker secrets
 
-The `docker-compose.yml` mounts the SSH private key via Docker secrets at
-`/run/secrets/ssh_key` — never pass it as an environment variable.
+The `docker-compose.yml` mounts the SSH private key via Docker Compose secrets at
+`/run/secrets/ssh_key` inside the container — never pass it as an environment variable.
 
 ## SSH Session Reuse
 
