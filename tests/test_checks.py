@@ -5,6 +5,7 @@ from __future__ import annotations
 import paramiko
 import pymysql.err
 import pytest
+from pytest_mock import MockerFixture
 
 from kuma_push_agent.checks.base import CheckResult
 from kuma_push_agent.checks.mariadb_via_ssh import MariaDBViaSSHCheck
@@ -42,7 +43,7 @@ def _make_cfg(
     )
 
 
-def _setup_ssh(mocker: pytest.MonkeyPatch):
+def _setup_ssh(mocker: MockerFixture):
     """Patch get_pool and return (mock_pool, mock_client, mock_transport, mock_channel)."""
     mock_pool = mocker.Mock()
     mock_client = mocker.Mock()
@@ -60,7 +61,7 @@ def _setup_ssh(mocker: pytest.MonkeyPatch):
     return mock_pool, mock_client, mock_transport, mock_channel
 
 
-def _setup_db_cursor(mocker: pytest.MonkeyPatch, rows: list):
+def _setup_db_cursor(mocker: MockerFixture, rows: list):
     """Return (mock_conn, mock_cursor) with fetchall configured."""
     mock_conn = mocker.MagicMock()
     mock_cursor = mocker.MagicMock()
@@ -95,7 +96,7 @@ def test_check_result_failure() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_success(mocker: pytest.MonkeyPatch, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_success(mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
     _, _, _, mock_channel = _setup_ssh(mocker)
     mock_conn, _ = _setup_db_cursor(mocker, [("1",)])
@@ -109,7 +110,7 @@ def test_success(mocker: pytest.MonkeyPatch, monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_success_custom_query_and_expected(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -129,7 +130,7 @@ def test_success_custom_query_and_expected(
 
 
 def test_missing_env_variable(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("TEST_DB_PASSWORD", raising=False)
@@ -143,7 +144,7 @@ def test_missing_env_variable(
 
 
 def test_ssh_auth_failure(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -161,7 +162,7 @@ def test_ssh_auth_failure(
 
 
 def test_ssh_connection_failure_both_attempts(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -180,7 +181,7 @@ def test_ssh_connection_failure_both_attempts(
 
 
 def test_ssh_connection_failure_second_attempt(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """First attempt stale, second attempt fails — should return SSH connection failed."""
@@ -200,7 +201,7 @@ def test_ssh_connection_failure_second_attempt(
 
 
 def test_mariadb_connection_failure(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -216,7 +217,7 @@ def test_mariadb_connection_failure(
 
 
 def test_mariadb_auth_failure(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "wrongpassword")
@@ -232,7 +233,7 @@ def test_mariadb_auth_failure(
 
 
 def test_mariadb_unknown_database(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -248,7 +249,7 @@ def test_mariadb_unknown_database(
 
 
 def test_invalid_query_result(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -264,7 +265,7 @@ def test_invalid_query_result(
 
 
 def test_query_returns_no_rows(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")
@@ -278,7 +279,7 @@ def test_query_returns_no_rows(
 
 
 def test_unexpected_exception_caught(
-    mocker: pytest.MonkeyPatch,
+    mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("TEST_DB_PASSWORD", "secret")

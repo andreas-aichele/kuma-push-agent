@@ -66,7 +66,10 @@ class SSHPool:
                 "Add the host key to known_hosts for production deployments.",
                 host,
             )
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            # AutoAddPolicy is used only when the host has no known_hosts entry.
+            # A warning is logged above. For strict security, mount a known_hosts
+            # file so the else branch (RejectPolicy) is taken instead.
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # nosec B507
         else:
             client.set_missing_host_key_policy(paramiko.RejectPolicy())
 

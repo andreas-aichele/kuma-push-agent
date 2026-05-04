@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import httpx
-import pytest
+from pytest_mock import MockerFixture
 
 from kuma_push_agent.uptime_kuma import _mask_url, push
 
@@ -33,7 +33,7 @@ def test_mask_url_preserves_scheme_and_host() -> None:
     assert "***" in masked
 
 
-def test_push_success(mocker: pytest.MonkeyPatch) -> None:
+def test_push_success(mocker: MockerFixture) -> None:
     mock_get = mocker.patch("kuma_push_agent.uptime_kuma.httpx.get")
     mock_response = mocker.Mock()
     mock_response.raise_for_status.return_value = None
@@ -49,7 +49,7 @@ def test_push_success(mocker: pytest.MonkeyPatch) -> None:
     mock_response.raise_for_status.assert_called_once()
 
 
-def test_push_url_encodes_special_chars(mocker: pytest.MonkeyPatch) -> None:
+def test_push_url_encodes_special_chars(mocker: MockerFixture) -> None:
     mock_get = mocker.patch("kuma_push_agent.uptime_kuma.httpx.get")
     mock_response = mocker.Mock()
     mock_response.raise_for_status.return_value = None
@@ -68,7 +68,7 @@ def test_push_url_encodes_special_chars(mocker: pytest.MonkeyPatch) -> None:
     assert "MariaDB+connection+failed" in call_url or "MariaDB%20connection%20failed" in call_url
 
 
-def test_push_timeout_does_not_raise(mocker: pytest.MonkeyPatch) -> None:
+def test_push_timeout_does_not_raise(mocker: MockerFixture) -> None:
     mocker.patch(
         "kuma_push_agent.uptime_kuma.httpx.get",
         side_effect=httpx.TimeoutException("timed out"),
@@ -76,7 +76,7 @@ def test_push_timeout_does_not_raise(mocker: pytest.MonkeyPatch) -> None:
     push("https://kuma.example.com/api/push/token123")  # must not raise
 
 
-def test_push_http_status_error_does_not_raise(mocker: pytest.MonkeyPatch) -> None:
+def test_push_http_status_error_does_not_raise(mocker: MockerFixture) -> None:
     mock_request = mocker.Mock()
     mock_response = mocker.Mock()
     mock_response.status_code = 500
@@ -91,7 +91,7 @@ def test_push_http_status_error_does_not_raise(mocker: pytest.MonkeyPatch) -> No
     push("https://kuma.example.com/api/push/token123")  # must not raise
 
 
-def test_push_connect_error_does_not_raise(mocker: pytest.MonkeyPatch) -> None:
+def test_push_connect_error_does_not_raise(mocker: MockerFixture) -> None:
     mocker.patch(
         "kuma_push_agent.uptime_kuma.httpx.get",
         side_effect=httpx.ConnectError("connection refused"),
@@ -99,7 +99,7 @@ def test_push_connect_error_does_not_raise(mocker: pytest.MonkeyPatch) -> None:
     push("https://kuma.example.com/api/push/token123")  # must not raise
 
 
-def test_push_passes_timeout_to_httpx(mocker: pytest.MonkeyPatch) -> None:
+def test_push_passes_timeout_to_httpx(mocker: MockerFixture) -> None:
     mock_get = mocker.patch("kuma_push_agent.uptime_kuma.httpx.get")
     mock_response = mocker.Mock()
     mock_response.raise_for_status.return_value = None
