@@ -1,0 +1,14 @@
+services:
+  kuma-push-agent:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./config.yml:/config/config.yml:ro
+      - ./secrets/ssh_key:/run/secrets/ssh_key:ro
+    secrets:
+      - ssh_key
+
+secrets:
+  ssh_key:
+    file: ./secrets/ssh_key
