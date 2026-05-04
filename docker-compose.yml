@@ -1,6 +1,8 @@
 services:
   kuma-push-agent:
-    build: .
+    # Pre-built image published to GitHub Container Registry on every push to main.
+    # To build from source instead, replace the image line with: build: .
+    image: ghcr.io/andreas-aichele/kuma-push-agent:latest
     restart: unless-stopped
     env_file: .env
     volumes:

@@ -1,6 +1,7 @@
 # kuma-push-agent
 
-[![CI](https://github.com/andreas-aichele/kuma_push_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/andreas-aichele/kuma_push_agent/actions/workflows/ci.yml)
+[![CI](https://github.com/andreas-aichele/kuma-push-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/andreas-aichele/kuma-push-agent/actions/workflows/ci.yml)
+[![Docker Image](https://ghcr-badge.egpl.dev/andreas-aichele/kuma-push-agent/latest_tag?trim=major&label=ghcr.io)](https://github.com/andreas-aichele/kuma-push-agent/pkgs/container/kuma-push-agent)
 
 > A lightweight, Dockerized push monitoring agent for Uptime Kuma
 
@@ -32,6 +33,25 @@ You can monitor a MariaDB instance on a remote server without:
 - 📋 **APScheduler 3.x** — reliable interval scheduling; first run fires immediately on startup
 - 🔑 **Multi-key-type** — RSA, Ed25519, ECDSA, and DSS SSH private keys all supported
 
+## Docker Image
+
+A pre-built image is published to the **GitHub Container Registry** on every push to `main`
+and on every version tag:
+
+```
+ghcr.io/andreas-aichele/kuma-push-agent:latest
+ghcr.io/andreas-aichele/kuma-push-agent:0.1.0   # pinned release
+```
+
+Pull the latest image directly — no build step required:
+
+```bash
+docker pull ghcr.io/andreas-aichele/kuma-push-agent:latest
+```
+
+The provided `docker-compose.yml` uses this image by default.
+To build from source instead, replace the `image:` line with `build: .`.
+
 ## Architecture
 
 ```
@@ -62,12 +82,18 @@ You can monitor a MariaDB instance on a remote server without:
 - An Uptime Kuma instance with at least one **Push** monitor configured
 - SSH access to the server hosting MariaDB
 
-### 1. Clone and create the secrets directory
+### 1. Create a working directory and download the config templates
+
+No clone required — the image is pulled automatically by Docker Compose.
+You only need the two template files:
 
 ```bash
-git clone https://github.com/andreas-aichele/kuma-push-agent.git
-cd kuma-push-agent
+mkdir kuma-push-agent && cd kuma-push-agent
 mkdir -p secrets
+# Download the config templates from the repository
+curl -fsSL https://raw.githubusercontent.com/andreas-aichele/kuma-push-agent/main/config.example.yml -o config.example.yml
+curl -fsSL https://raw.githubusercontent.com/andreas-aichele/kuma-push-agent/main/.env.example       -o .env.example
+curl -fsSL https://raw.githubusercontent.com/andreas-aichele/kuma-push-agent/main/docker-compose.yml -o docker-compose.yml
 ```
 
 ### 2. Generate a dedicated SSH key
@@ -128,7 +154,7 @@ WEB_DB_PASSWORD=your-monitor-password
 ### 6. Start the agent
 
 ```bash
-docker compose up -d --build
+docker compose up -d       # pulls ghcr.io/andreas-aichele/kuma-push-agent:latest automatically
 docker compose logs -f
 ```
 
