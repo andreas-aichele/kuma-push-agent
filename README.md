@@ -174,15 +174,14 @@ FLUSH PRIVILEGES;
 
 ### SSH host key verification
 
-By default, when no `known_hosts` entry exists, the agent logs a warning and uses
-`AutoAddPolicy`. For production, mount a `known_hosts` file with the fingerprints of your
-target hosts:
+The agent always uses `RejectPolicy` — it will never silently accept an unknown host key.
+Before starting the agent, add each target host to `known_hosts`:
 
 ```bash
 ssh-keyscan example.com >> secrets/known_hosts
 ```
 
-Then mount it into the container at `/root/.ssh/known_hosts`:
+Then mount it into the container:
 
 ```yaml
 volumes:
@@ -212,7 +211,6 @@ If you run 5 checks against the same SSH host, only **one** SSH connection is ev
 2024-01-15T10:30:00Z INFO  kuma_push_agent.main       kuma-push-agent v0.1.0 starting with 2 check(s)
 2024-01-15T10:30:00Z INFO  kuma_push_agent.scheduler  Scheduled check 'web_prod_db' every 60s
 2024-01-15T10:30:00Z INFO  kuma_push_agent.scheduler  Scheduler started with 2 job(s)
-2024-01-15T10:30:00Z WARNING kuma_push_agent.ssh_pool  No known_hosts entry for example.com; falling back to AutoAddPolicy.
 2024-01-15T10:30:01Z INFO  kuma_push_agent.scheduler  Check 'web_prod_db': ok=True msg=OK ping=312ms
 2024-01-15T10:30:01Z INFO  kuma_push_agent.uptime_kuma Pushing to Uptime Kuma: https://kuma.example.com/api/push/*** status=up msg=OK ping=312ms
 2024-01-15T10:31:00Z INFO  kuma_push_agent.scheduler  Check 'web_prod_db': ok=False msg=SSH connection failed ping=5001ms

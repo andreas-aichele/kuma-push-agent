@@ -116,6 +116,12 @@ class MariaDBViaSSHCheck(BaseCheck):
             expected = self._db.expected_result.strip()
 
             if actual != expected:
+                if len(actual) > 100:
+                    _logger.debug(
+                        "Check '%s': full query result (truncated in message): %s",
+                        self._cfg.name,
+                        actual,
+                    )
                 return CheckResult(
                     ok=False,
                     message=(f"Invalid query result: expected={expected!r} got={actual[:100]!r}"),

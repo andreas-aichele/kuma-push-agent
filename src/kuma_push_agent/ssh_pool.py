@@ -54,7 +54,18 @@ class SSHPool:
             return False
 
     def _setup_host_keys(self, client: paramiko.SSHClient, host: str) -> None:
-        """Load system known_hosts; warn and fall back to AutoAddPolicy if host unknown."""
+        """Load system known_hosts and configure host key verification.
+
+        Uses :class:`~paramiko.RejectPolicy` so that connections to unknown hosts
+        fail with a clear error.  To authorise a host, add its fingerprint to the
+        system ``known_hosts`` file (``~/.ssh/known_hosts`` or
+        ``/etc/ssh/ssh_known_hosts``) **or** mount one into the container, e.g.:
+
+            volumes:
+              - ./secrets/known_hosts:/root/.ssh/known_hosts:ro
+
+        Run ``ssh-keyscan <host> >> secrets/known_hosts`` to populate the file.
+        """
         try:
             client.load_system_host_keys()
         except Exception:  # noqa: BLE001
@@ -62,16 +73,16 @@ class SSHPool:
 
         if client.get_host_keys().lookup(host) is None:
             _logger.warning(
-                "No known_hosts entry for %s; falling back to AutoAddPolicy. "
-                "Add the host key to known_hosts for production deployments.",
+                "No known_hosts entry found for %s. "
+                "The connection will be rejected by RejectPolicy. "
+                "Run 'ssh-keyscan %s >> ~/.ssh/known_hosts' to add the host key, "
+                "or mount a known_hosts file into the container.",
+                host,
                 host,
             )
-            # AutoAddPolicy is used only when the host has no known_hosts entry.
-            # A warning is logged above. For strict security, mount a known_hosts
-            # file so the else branch (RejectPolicy) is taken instead.
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())  # nosec B507
-        else:
-            client.set_missing_host_key_policy(paramiko.RejectPolicy())
+
+        # Always reject unknown host keys — never silently accept them.
+        client.set_missing_host_key_policy(paramiko.RejectPolicy())
 
     def _connect(self, key: SSHKey, connect_timeout: int, keepalive: int) -> paramiko.SSHClient:
         """Create and return a new authenticated SSH client."""
