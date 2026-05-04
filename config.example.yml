@@ -1,0 +1,23 @@
+checks:
+  - name: web_prod_db
+    type: mariadb_via_ssh
+    interval_seconds: 60
+    timeout_seconds: 10
+    uptime_kuma_push_url: "https://kuma.example.com/api/push/xxxxxxxxxxxxxxxx"
+
+    ssh:
+      host: "example.com"
+      port: 22
+      username: "monitor"
+      private_key_path: "/run/secrets/ssh_key"
+      connect_timeout_seconds: 5
+      keepalive_seconds: 30
+
+    mariadb:
+      host: "127.0.0.1"
+      port: 3306
+      username: "monitor"
+      password_env: "WEB_DB_PASSWORD"
+      database: "web"
+      query: "SELECT 1;"
+      expected_result: "1"
